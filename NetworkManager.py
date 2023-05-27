@@ -7,6 +7,37 @@ import select
 # Implemented message types
 # {"msg_type": "hello", "ip": "self.ip"}
 
+# messages to implement...
+
+# {"msg_type": "hello_received"} # any extra parameter needed?
+
+# variable_update_package
+# {"msg_type": "variable_update", variable_name:<variable_name>, "operation": <5, 1, -1, etc, only 1 integer>}
+
+# start_sync_package
+# {"msg_type": "start_sync"}
+
+# stop_sync_package
+# {"msg_type": "stop_sync"}
+
+# ask node status
+# {"msg_type": "status_request"}
+
+# send node status
+# {"msg_type": "status", "status": <"work" or "sync">}
+
+# request missing nonce package
+# {"msg_type": "missing_nonce_request", variable_name:<variable_name>, "nonce": <nonce-number>}
+
+# send requested nonce package
+# {"msg_type": "requested_nonce", variable_name:<variable_name>, "nonce": <nonce-number>}
+
+# send all updates during sync
+# {"msg_type": "sync_data", variable_name:<variable_name>, "nonce": <history list>}
+
+
+
+
 
 # Other msg types should be implemented as well
 # Simple wrapper for msg dictionary, introduces a short way of creating dict items
