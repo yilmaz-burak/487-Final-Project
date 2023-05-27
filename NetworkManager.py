@@ -7,9 +7,7 @@ import select
 # Implemented message types
 # {"msg_type": "hello", "ip": "self.ip"}
 
-# messages to implement...
-
-# {"msg_type": "hello_received"} # any extra parameter needed?
+# {"msg_type": "hello_received", "status": <"work" or "sync">}
 
 # variable_update_package
 # {"msg_type": "variable_update", variable_name:<variable_name>, "operation": <5, 1, -1, etc, only 1 integer>}
@@ -27,21 +25,18 @@ import select
 # {"msg_type": "status", "status": <"work" or "sync">}
 
 # request missing nonce package
-# {"msg_type": "missing_nonce_request", variable_name:<variable_name>, "nonce": <nonce-number>}
+# {"msg_type": "nonce_request", variable_name:<variable_name>, "nonce": <nonce-number>}
 
 # send requested nonce package
-# {"msg_type": "requested_nonce", variable_name:<variable_name>, "nonce": <nonce-number>}
+# {"msg_type": "nonce_send", variable_name:<variable_name>, "nonce": <nonce-number>}
 
 # send all updates during sync
-# {"msg_type": "sync_data", variable_name:<variable_name>, "nonce": <history list>}
+# {"msg_type": "sync_data", variable_name:<variable_name>, "nonce_list": <history list>}
 
 
-
-
-
-# Other msg types should be implemented as well
 # Simple wrapper for msg dictionary, introduces a short way of creating dict items
 # >>> msg = Msg().init_hello(ip)
+# >>> ip = msg["ip"]
 class Msg:
     def __init__(self):
         self.msg_dict = {}
@@ -55,10 +50,67 @@ class Msg:
     def clear(self):
         self.msg_dict = {}
 
-    def init_hello(self, ip: str):
+    def init_hello(self, ip: str, status: str):
         self.clear()
         self.msg_dict["msg_type"] = "hello"
+        self.msg_dict["status"] = status
         self.msg_dict["ip"] = ip
+        return self
+
+    def init_hello_received(self, status: str):
+        self.clear()
+        self.msg_dict["msg_type"] = "hello_received"
+        self.msg_dict["status"] = status
+        return self
+
+    def init_variable_update(self, variable_name: str, operation: int):
+        self.clear()
+        self.msg_dict["msg_type"] = "variable_update"
+        self.msg_dict["variable_name"] = variable_name
+        self.msg_dict["operation"] = str(operation)
+        return self
+
+    def init_start_sync(self):
+        self.clear()
+        self.msg_dict["msg_type"] = "start_sync"
+        return self
+
+    def init_stop_sync(self):
+        self.clear()
+        self.msg_dict["msg_type"] = "stop_sync"
+        return self
+
+    def init_status_request(self):
+        self.clear()
+        self.msg_dict["msg_type"] = "status_request"
+        return self
+
+    def init_status(self, status: str):
+        self.clear()
+        self.msg_dict["msg_type"] = "status"
+        self.msg_dict["status"] = status
+        return self
+
+    def init_nonce_request(self, variable_name: str, nonce: int):
+        self.clear()
+        self.msg_dict["msg_type"] = "nonce_request"
+        self.msg_dict["variable_name"] = variable_name
+        self.msg_dict["nonce_number"] = str(nonce)
+        return self
+
+    def init_nonce_send(self, variable_name: str, nonce: int):
+        self.clear()
+        self.msg_dict["msg_type"] = "nonce_send"
+        self.msg_dict["variable_name"] = variable_name
+        self.msg_dict["nonce_number"] = str(nonce)
+        return self
+
+    def init_sync_data(self, variable_name: str, nonce_list: list):
+        self.clear()
+        self.msg_dict["msg_type"] = "sync_data"
+        self.msg_dict["variable_name"] = variable_name
+        self.msg_dict["nonce_number"] = str(nonce_list)
+        return self
 
     def from_jsonstr(self, jsonstr: str):
         self.clear()
@@ -72,9 +124,12 @@ class Msg:
 # Generic class to perform tcp send, tcp listen, udp listen, udp broadcast
 class NetworkManager:
     def __init__(self, port):
-        self.peers = []  # [[ip, status]]
+        self.peers = {}  # {ip: status}
         self.ip = self.get_myip()
         self.port = port
+
+    def get_peers(self):
+        return self.peers
 
     def get_myip(self) -> str:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -146,9 +201,9 @@ class NetworkManager:
                         msg = Msg().from_jsonstr(jsonstr_msg)
 
                         if network_msg_handler:
-                            network_msg_handler(msg)
+                            network_msg_handler(msg, addr[0])  # addr[0] -> ip
                         if crdt_msg_handler:
-                            crdt_msg_handler(msg)
+                            crdt_msg_handler(msg, addr[0])  # addr[0] -> ip
 
                         if not data:
                             break
@@ -181,6 +236,13 @@ class NetworkManager:
 
 
 if __name__ == "__main__":
+    def network_handler(msg: Msg, ip: str):
+        print(msg)
+        print(ip)
+
     network_manager = NetworkManager(12345)
-    network_manager.listen_tcp_threaded()
-    network_manager.listen_udp_threaded()
+    network_manager.listen_tcp_threaded(network_handler, None)
+    network_manager.listen_udp_threaded(network_handler, None)
+    network_manager.broadcast_threaded(Msg().init_hello(network_manager.ip, "work"))
+
+
