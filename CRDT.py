@@ -10,18 +10,20 @@ from constants import (
     MSG_NONCE_SEND,
     MSG_SYNC_DATA,
 )
-from NetworkManager import Msg
+from Msg import Msg
 
 HistoryObject = dict[int, int]
 History = dict[str, HistoryObject]
 
+
 class CRDT:
-    def __init__(self):
+    def __init__(self, name):
         self.sync_history: History = {}
         self.self_history: HistoryObject = {}
         self.value = 0
         self.current_nonce = 0
         self.before_sync_value = 0
+        self.name = name
         # TODO: shall the variable_name be kept here?
 
     # Q: This will only be used after sync is finished... Right?
@@ -84,7 +86,7 @@ class CRDT:
         self._sync_with_history()
 
     def _sync_with_history(self):
-        print(f"current val: {self.value}\n, history: {self.sync_history}\n, self history: {self.self_history}\n, previous value: {self.before_sync_value}\n")
+        # print(f"current val: {self.value}\n, history: {self.sync_history}\n, self history: {self.self_history}\n, previous value: {self.before_sync_value}\n")
 
         expected_value = self.before_sync_value
 
@@ -96,7 +98,34 @@ class CRDT:
                 expected_value += self.sync_history[node][key]
 
         if self.value != expected_value:
-            print(f"current: {self.value} - expected: {expected_value}")
+            print(f"{self.name} ==> current: {self.value} - expected: {expected_value}")
             self.value = expected_value
+
+    def _get_nonce_values(self, nonce_list: list[int]) -> dict[int, int]:
+        nonce_values: dict[int, int] = {}
+        for nonce_index in nonce_list:
+            nonce_values[nonce_index] = self.self_history[nonce_index]
+
+        return nonce_values
+
+    def get_missing_nonces(self) -> dict[str, list[int]]:
+        missing_list: dict[str, list[int]] = {}
+
+        for node_id in self.sync_history:
+            print(1)
+            node_history = self.sync_history[node_id]
+            print(2)
+            if len(node_history) > 0:
+                highest_index = max(node_history.keys())
+
+                for i in range(highest_index):
+                    if i not in node_history:
+                        if node_id not in missing_list:
+                            missing_list[node_id] = []
+
+                        print("i:", i)
+                        missing_list[node_id].append(i)
+
+        return missing_list
 
     # TODO: maybe add a checker that all the history sum up to current value. Maybe, we could add before_sync_value to see the effect after syncing
