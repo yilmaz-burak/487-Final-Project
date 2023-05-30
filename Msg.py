@@ -85,7 +85,7 @@ class Msg:
         self.msg_dict["nonce_dict"] = nonce_dict
         return self
 
-    def init_sync_data(self, variable_name: str, previous_value: int, history: dict):
+    def init_sync_data(self, variable_name: str, previous_value: int, history: dict[int, int]):
         self.clear()
         self.msg_dict["msg_type"] = MSG_SYNC_DATA
         self.msg_dict["variable_name"] = variable_name
@@ -103,3 +103,8 @@ class Msg:
 
     def to_jsonstr(self) -> str:
         return json.dumps(self.msg_dict)
+
+    def convert_dict_to_dict(self, original_dict) -> dict[int, int]:
+        new_dict = {int(key): value for key, value in original_dict.items()}
+        return new_dict
+

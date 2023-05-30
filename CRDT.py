@@ -72,7 +72,7 @@ class CRDT:
             self._handle_variable_update(operation_value, nonce, ip)
 
         if msg.__getitem__("msg_type") == MSG_SYNC_DATA:
-            history = msg.__getitem__("history")
+            history = msg.convert_dict_to_dict(msg.__getitem__("history"))
             previous_value = msg.__getitem__("previous_value")
             self._handle_sync_data(ip, previous_value, history)
 
@@ -86,8 +86,6 @@ class CRDT:
         self._sync_with_history()
 
     def _sync_with_history(self):
-        # print(f"current val: {self.value}\n, history: {self.sync_history}\n, self history: {self.self_history}\n, previous value: {self.before_sync_value}\n")
-
         expected_value = self.before_sync_value
 
         for key in self.self_history:
@@ -112,18 +110,15 @@ class CRDT:
         missing_list: dict[str, list[int]] = {}
 
         for node_id in self.sync_history:
-            print(1)
             node_history = self.sync_history[node_id]
-            print(2)
             if len(node_history) > 0:
-                highest_index = max(node_history.keys())
+                highest_index = int(max(node_history.keys()))
 
                 for i in range(highest_index):
                     if i not in node_history:
                         if node_id not in missing_list:
                             missing_list[node_id] = []
 
-                        print("i:", i)
                         missing_list[node_id].append(i)
 
         return missing_list
