@@ -23,7 +23,10 @@ if __name__ == "__main__":
     network_manager.schedule_sync_broadcast()
     network_manager.broadcast_threaded(Msg().init_hello(network_manager.ip, "work"))
 
+
     # TODO: add a sync checker, which will start and/or listen for end of sync process between nodes
+    # This will wait for all peers to be in sync mode. Then, all nonce values will be checked. This is done in network handlers, so no need for extra stuff
+    # Continuously check other peers' statuses. If everyone is in ready status --> flush self_history and sync_history, then switch to working status
 
     thread = Thread(target=handle_user_input, args=(network_manager,))
     thread.start()
@@ -31,3 +34,8 @@ if __name__ == "__main__":
 # TODO: keep state, whether the node is accepted to network or not.
 
 # Q: Instead of giving crdt_handler as a distinct function, maybe call from network handler, depending on message type?
+
+# TODO: self.peers should be thoroughly checked
+# TODO: initial entrance to network OR network failure OR app crashed
+# TODO: full-sync mode-checker --> thread for infinite loop to continuously check states of other peers
+# TODO: status of the node should also affect some operations --> block operations on variables

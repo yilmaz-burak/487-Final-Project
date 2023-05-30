@@ -57,7 +57,7 @@ class NetworkManager:
                 msg = Msg().init_sync_data(variable_name, crdt.before_sync_value, crdt.self_history)
                 thread = Thread(target=self._broadcast, args=(msg,))
                 thread.start()
-            time.sleep(100)
+            time.sleep(0.1)
 
     def schedule_sync_broadcast(self) -> None:
         Thread(target=self._sync_broadcast).start()
@@ -311,7 +311,7 @@ class NetworkManager:
             # TODO: need to add relevant checks for this on function calls
             self.current_status = "sync"
             time.sleep(0.1) # sleep, since we don't use locks. nonce value could be changed by another thread
-            
+
             # TODO: send sync initiating message to all the nodes via tcp, telling what variables and their max_nonce values
             variable_max_nonce_dict: dict[str, int] = {}
             for variable_name in self.variable_name_to_object:
@@ -345,7 +345,7 @@ class NetworkManager:
             print(f"missing nonce list {missing_nonce_list}")
 
         elif operation_value == "populate":
-            for _ in range(0,10):
+            for _ in range(0,1000):
                 number = random.randint(-10000, 10000)
                 crdt.operate(number)
                 self.broadcast_threaded(Msg().init_variable_update(variable_name, number, crdt.current_nonce - 1))
