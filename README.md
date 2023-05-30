@@ -26,3 +26,32 @@ We have 2 modes: `Work` and `Sync`
 `Sync` --> `Work` mode only happens if all the nodes have acknowledged each others full sync messages
  
 
+## Run on a Single Machine
+```
+docker-compose up -d
+```
+This will create 2 containers running the same application. Then,
+```
+docker ps --> see the containers
+on terminal 1 --> docker attach <container-id-1>
+on terminal 2 --> docker attach <container-id-2>
+```
+These commands will bind your io to the one in the container.
+
+To test different exiting / rejoining, `ctrl+c` from one of the terminals, and run 
+```
+docker-compose up -d
+```
+from the terminal that you killed the process. This way, it will be restarted, but the other one won't be affected. Then, attach your terminal by running 
+```
+on terminal --> docker attach <container-id>
+```
+again.
+
+
+## Sample User Inputs
+```
+<get - history - before - sync> <variable_name> --> get info related to <variable_name>
+or
+<+ or - integer> <variable name> --> operate on <variable_name>
+```
