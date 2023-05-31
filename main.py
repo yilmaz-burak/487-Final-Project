@@ -36,6 +36,9 @@ if __name__ == "__main__":
 # Q: Instead of giving crdt_handler as a distinct function, maybe call from network handler, depending on message type?
 
 # TODO: self.peers should be thoroughly checked
+# Implemented hello_received
 # TODO: initial entrance to network OR network failure OR app crashed
+# When new node joins, it sends a hello message start sync if other nodes are in work mode,
+# starts full-sync if other nodes are in ready or sync mode
 # TODO: full-sync mode-checker --> thread for infinite loop to continuously check states of other peers
-# TODO: status of the node should also affect some operations --> block operations on variables
+

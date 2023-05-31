@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Dict, List
 from constants import (
     MSG_HELLO,
     MSG_HELLO_RECEIVED,
@@ -10,6 +10,7 @@ from constants import (
     MSG_NONCE_REQUEST,
     MSG_NONCE_SEND,
     MSG_SYNC_DATA,
+    LISTEN_BUFFER_SIZE
 )
 # import json
 import socket
@@ -20,6 +21,7 @@ import time
 from CRDT import CRDT
 from Msg import Msg
 
+
 # Generic class to perform tcp send, tcp listen, udp listen, udp broadcast
 class NetworkManager:
     def __init__(self, port):
@@ -27,15 +29,15 @@ class NetworkManager:
         self.ip = self.get_myip()
         self.port = port
         self.current_status = "work"
-        self.variable_name_to_object: dict[str, CRDT] = {}
-        self.peers_variables_max_nonces: dict[str, dict[str, int]] = {}
+        self.variable_name_to_object: Dict[str, CRDT] = {}
+        self.peers_variables_max_nonces: Dict[str, Dict[str, int]] = {}
 
     def get_peers(self):
         return self.peers
-    
-    def get_variable_name_to_object(self) -> dict[str, CRDT]:
-        return self.variable_name_to_object 
-        
+
+    def get_variable_name_to_object(self) -> Dict[str, CRDT]:
+        return self.variable_name_to_object
+
     def get_myip(self) -> str:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.settimeout(0)
@@ -73,7 +75,7 @@ class NetworkManager:
         thread.start()
 
     def listen_tcp_threaded(
-        self
+            self
     ):
         thread = Thread(
             target=self._listen_tcp,
@@ -81,7 +83,7 @@ class NetworkManager:
         thread.start()
 
     def listen_udp_threaded(
-        self
+            self
     ):
         thread = Thread(
             target=self._listen_udp,
@@ -122,7 +124,7 @@ class NetworkManager:
                 conn, addr = s.accept()
                 with conn:
                     while True:
-                        data = conn.recv(2048)
+                        data = conn.recv(LISTEN_BUFFER_SIZE)
                         if not data:
                             break
                         jsonstr_msg = data.decode()
@@ -150,8 +152,7 @@ class NetworkManager:
                 s.bind(("", self.port))
                 s.setblocking(False)
                 result = select.select([s], [], [])
-                # jsonstr_msg, ip = result[0][0].recvfrom(1024)
-                jsonstr_msg, ip = result[0][0].recvfrom(4096)
+                jsonstr_msg, ip = result[0][0].recvfrom(LISTEN_BUFFER_SIZE)
                 msg = Msg().from_jsonstr(jsonstr_msg.decode())
 
                 if self.ip == ip[0]:
@@ -170,7 +171,6 @@ class NetworkManager:
     def _network_handler(self, msg: Msg, ip: str):
         # TODO: add global for variable_name_to_object?
 
-
         msg_type = msg.__getitem__("msg_type")
         # check for status of the node
         if msg_type == MSG_HELLO:
@@ -185,22 +185,42 @@ class NetworkManager:
                         Msg().init_sync_data(variable, crdt.get_before_sync_value(), crdt.get_self_history()),
                         ip,
                     )
+                    self.send_threaded(Msg().init_hello_received(self.current_status), ip)
+
+                if status == "work" and (self.current_status == "ready" or self.current_status == "sync"):
+                    variable_max_nonce_dict: Dict[str, int] = {}
+                    for variable_name in self.variable_name_to_object:
+                        crdt = self.variable_name_to_object[variable_name]
+                        variable_max_nonce_dict[variable_name] = crdt.current_nonce
+
+                    start_sync_msg = Msg().init_start_sync(variable_max_nonce_dict)
+                    self.send_threaded(start_sync_msg, ip_from_message)
+
             except Exception as e:
                 print("Hello error:", e)
-                
+
+        if msg_type == MSG_HELLO_RECEIVED:
+            try:
+                status = msg.__getitem__("status")
+                ip_from_message = msg.__getitem__("ip")
+                print(f"ip is found as {ip}, {ip_from_message} with status: {status}")
+                self.peers[ip_from_message] = status
+            except Exception as e:
+                print("Hello_received error:", e)
+
         if msg_type == MSG_START_SYNC:
             try:
-                self.current_status = "sync" # start the syncing process
+                self.current_status = "sync"  # start the syncing process
                 time.sleep(0.1)
 
                 # this code is duplicate of the one on _handle_user_input
-                variable_max_nonce_dict: dict[str, int] = {}
+                variable_max_nonce_dict: Dict[str, int] = {}
                 for variable_name in self.variable_name_to_object:
                     crdt = self.variable_name_to_object[variable_name]
                     variable_max_nonce_dict[variable_name] = crdt.current_nonce
-                    
+
                 start_sync_msg = Msg().init_start_sync(variable_max_nonce_dict)
-                for node_ip in self.peers: # TODO: peers is not populated correctly.
+                for node_ip in self.peers:  # TODO: peers is not populated correctly.
                     self.send_threaded(start_sync_msg, node_ip)
 
                 # send the needed data to the sync requester
@@ -210,7 +230,7 @@ class NetworkManager:
                         self.variable_name_to_object[variable_name] = CRDT(variable_name)
 
                     max_nonce = variable_max_nonce_dict[variable_name]
-                    missing_nonce_list: list[int] = []
+                    missing_nonce_list: List[int] = []
                     for nonce_number in range(max_nonce):
                         if nonce_number not in self.variable_name_to_object[variable_name].sync_history:
                             missing_nonce_list.append(nonce_number)
@@ -226,7 +246,7 @@ class NetworkManager:
                 nonce_number_list = msg.__getitem__("nonce_number_list")
                 crdt = self.variable_name_to_object[variable_name]
                 nonce_dict = crdt._get_nonce_values(nonce_number_list)
-                
+
                 msg = Msg().init_nonce_send(variable_name, nonce_dict)
                 self.send_threaded(msg, ip)
             except Exception as e:
@@ -246,7 +266,7 @@ class NetworkManager:
                     variable_nonce_dict = self.peers_variables_max_nonces[node_id]
                     for variable_name in variable_nonce_dict:
                         max_nonce = variable_nonce_dict[variable_name]
-                        missing_nonce_list: list[int] = []
+                        missing_nonce_list: List[int] = []
                         for nonce_number in range(max_nonce):
                             if nonce_number not in self.variable_name_to_object[node_id].sync_history:
                                 missing_nonce_list.append(nonce_number)
@@ -257,15 +277,28 @@ class NetworkManager:
                             self.send_threaded(msg, node_id)
                 if everything_is_ready:
                     self.current_status = "ready"
-                    # TOOD: send a status change message...
+                    for node_ip in self.peers:  # TODO: peers is not populated correctly.
+                        self.send_threaded(Msg().init_status(self.current_status), node_ip)
             except Exception as e:
                 print("msg_nonce_send error:", e)
 
+        if msg_type == MSG_STATUS:
+            try:
+                self.peers["ip"] = msg["status"]
+            except Exception as e:
+                print("msg_status error:", e)
+
+        if msg_type == MSG_STATUS_REQUEST:
+            try:
+                self.send_threaded(Msg().init_status(self.current_status), ip)
+            except Exception as e:
+                print("msg_status_request error:", e)
+
     def _crdt_handler(self, msg: Msg, ip: str):
-    # TODO: We should call this from network_handler. Assuming all ips this function is called with are whitelisted.
-    # if ip not in variable_name_to_object:
-    #     print(f"node_id with ip: {ip} is not known.")
-    #     return
+        # TODO: We should call this from network_handler. Assuming all ips this function is called with are whitelisted.
+        # if ip not in variable_name_to_object:
+        #     print(f"node_id with ip: {ip} is not known.")
+        #     return
 
         msg_type = msg.__getitem__("msg_type")  # TODO: this should be handled in network_handler function
         if msg_type == MSG_VARIABLE_UPDATE or msg_type == MSG_SYNC_DATA:
@@ -278,6 +311,41 @@ class NetworkManager:
 
             crdt = self.variable_name_to_object[variable_name]
             crdt.handle_msg(msg, ip)
+
+
+    def _start_full_sync(self):
+        print("START FULL-SYNC")
+        # TODO: implement sync in manual fashion first
+        # network_manager.broadcast_threaded(Msg().init_start_sync())
+
+        # TODO: Set current status to sync - Maybe do this for individual variables? Would be cooler. Like a distributed mutex lock...
+        # TODO: need to add relevant checks for this on function calls
+        self.current_status = "sync"
+        time.sleep(0.1)  # sleep, since we don't use locks. nonce value could be changed by another thread
+
+        # TODO: send sync initiating message to all the nodes via tcp, telling what variables and their max_nonce values
+        variable_max_nonce_dict: Dict[str, int] = {}
+        for variable_name in self.variable_name_to_object:
+            crdt = self.variable_name_to_object[variable_name]
+            variable_max_nonce_dict[variable_name] = crdt.current_nonce
+
+        start_sync_msg = Msg().init_start_sync(variable_max_nonce_dict)
+        print("self peers:", self.peers)
+        for node_ip in self.peers:  # TODO: peers is not populated correctly.
+            self.send_threaded(start_sync_msg, node_ip)
+
+        print(f"'{start_sync_msg.to_string()}' is sent to all peers.")
+
+        # left as is for now
+        # # Check if all the peers are ready to sync, are in sync mode.
+        # # TODO: wait until all nodes-peers are in sync mode
+        while True:
+            all_in_sync_mode = True
+            for i in self.peers:
+                if self.peers[i] != "sync":
+                    all_in_sync_mode = False
+            if all_in_sync_mode:
+                break
 
     def handle_user_input(self, operation_value: Union[str, int], variable_name: str):
         variable_name_to_object = self.variable_name_to_object
@@ -294,40 +362,9 @@ class NetworkManager:
             print(f"{variable_name} - self history: : {crdt.get_self_history()}")
             print(f"{variable_name} - history: : {crdt.get_sync_history()}\n")
         elif operation_value == "full-sync":
-            print("START FULL-SYNC")
-            # TODO: implement sync in manual fashion first
-            # network_manager.broadcast_threaded(Msg().init_start_sync())
+            self._start_full_sync()
 
-            # TODO: Set current status to sync - Maybe do this for individual variables? Would be cooler. Like a distributed mutex lock...
-            # TODO: need to add relevant checks for this on function calls
-            self.current_status = "sync"
-            time.sleep(0.1) # sleep, since we don't use locks. nonce value could be changed by another thread
-
-            # TODO: send sync initiating message to all the nodes via tcp, telling what variables and their max_nonce values
-            variable_max_nonce_dict: dict[str, int] = {}
-            for variable_name in self.variable_name_to_object:
-                crdt = self.variable_name_to_object[variable_name]
-                variable_max_nonce_dict[variable_name] = crdt.current_nonce
-                
-            start_sync_msg = Msg().init_start_sync(variable_max_nonce_dict)
-            print("self peers:", self.peers)
-            for node_ip in self.peers: # TODO: peers is not populated correctly.
-                self.send_threaded(start_sync_msg, node_ip)
-
-            print(f"'{start_sync_msg.to_string()}' is sent to all peers.")
-
-            # left as is for now
-            # # Check if all the peers are ready to sync, are in sync mode.
-            # # TODO: wait until all nodes-peers are in sync mode
-            # while True:
-            #     all_in_sync_mode = True
-            #     for i in self.peers:
-            #         if self.peers[i] != "sync":
-            #             all_in_sync_mode = False
-            #     if all_in_sync_mode:
-            #         break
-
-            # # TODO: start broadcasting sync packages for each crdt data OR start asking for missing nonce values
+            # TODO: start broadcasting sync packages for each crdt data OR start asking for missing nonce values
 
 
 
@@ -336,14 +373,19 @@ class NetworkManager:
             print(f"missing nonce list {missing_nonce_list}")
 
         elif operation_value == "populate":
-            for _ in range(0,10):
-                number = random.randint(-10000, 10000)
-                crdt.operate(number)
-                self.broadcast_threaded(Msg().init_variable_update(variable_name, number, crdt.current_nonce - 1))
+            if self.current_status == "work":
+                for _ in range(0, 10):
+                    number = random.randint(-10000, 10000)
+                    crdt.operate(number)
+                    self.broadcast_threaded(Msg().init_variable_update(variable_name, number, crdt.current_nonce - 1))
+            else:
+                print("wait full-sync to finish")
+                #TODO: Maybe add message queue instead of blocking
         else:
-            try:
+            try: #TODO
                 operation_value = int(operation_value)  # TODO: error handling
                 crdt.operate(operation_value)
-                self.broadcast_threaded(Msg().init_variable_update(variable_name, operation_value, crdt.current_nonce - 1))
+                self.broadcast_threaded(
+                    Msg().init_variable_update(variable_name, operation_value, crdt.current_nonce - 1))
             except Exception as e:
                 print(f"Encountered error: {e}")
