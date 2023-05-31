@@ -55,9 +55,10 @@ class Msg:
         self.msg_dict["variable_max_nonce_dict"] = variable_max_nonce_dict
         return self
 
-    def init_stop_sync(self):
+    def init_stop_sync(self, variable_value_dict: dict[str, int]):
         self.clear()
         self.msg_dict["msg_type"] = MSG_STOP_SYNC
+        self.msg_dict["variable_value_dict"] = variable_value_dict
         return self
 
     def init_status_request(self):

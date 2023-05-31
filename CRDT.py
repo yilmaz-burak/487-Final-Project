@@ -29,6 +29,7 @@ class CRDT:
     # Q: This will only be used after sync is finished... Right?
     def reset(self) -> None:
         self.before_sync_value = self.value
+        self.current_nonce = 0
         self.sync_history = {}
         self.self_history = {}
 

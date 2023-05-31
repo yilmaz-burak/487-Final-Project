@@ -10,7 +10,9 @@ def handle_user_input(network_manager: NetworkManager):
         user_input = input()
         try:
             operation_value, variable_name = user_input.split()  # TODO: add error handling
-            network_manager.handle_user_input(operation_value, variable_name)
+            thread = Thread(target=network_manager.handle_user_input, args=(operation_value, variable_name,))
+            thread.start()
+            
         except Exception as e:
             print(f"Exception occured: {e}")
 
@@ -21,8 +23,9 @@ if __name__ == "__main__":
     network_manager.listen_tcp_threaded()
     network_manager.listen_udp_threaded()
     network_manager.schedule_sync_broadcast()
-    network_manager.broadcast_threaded(Msg().init_hello(network_manager.ip, "work"))
-
+    #network_manager.broadcast_threaded(Msg().init_hello(network_manager.ip, network_manager.current_status))
+    Thread(target=network_manager.periodic_hello_broadcast, args=(5,)).start()
+    Thread(target=network_manager.check_everything_is_ready).start()
 
     # TODO: add a sync checker, which will start and/or listen for end of sync process between nodes
     # This will wait for all peers to be in sync mode. Then, all nonce values will be checked. This is done in network handlers, so no need for extra stuff
