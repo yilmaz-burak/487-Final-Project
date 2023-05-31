@@ -337,7 +337,7 @@ class NetworkManager:
                     continue
 
                 elif self.current_status == "ready":
-                    print("wait for peers ready")
+                    # print("wait for peers ready")
                     while True:
                         all_in_ready_mode = True
                         for i in self.peers:
@@ -345,9 +345,9 @@ class NetworkManager:
                                 all_in_ready_mode = False
                         if all_in_ready_mode:
                             break
-                    print("waited for peers ready")
+                    # print("waited for peers ready")
 
-                    print("sending stop sync message")
+                    # print("sending stop sync message")
                     variable_value_dict: dict[str, int] = {}
                     for variable_name in self.variable_name_to_object:
                         variable_value_dict[variable_name] = self.variable_name_to_object[variable_name].value
@@ -356,12 +356,12 @@ class NetworkManager:
                     for node_id in self.peers:
                         self.send_threaded(msg, node_id)
 
-                    print("sent stop sync message:", msg.to_string())
+                    # print("sent stop sync message:", msg.to_string())
 
-                    print("here.....")
+                    # print("here.....")
                     while True:
                         all_variables_synced = True
-                        print("in while")
+                        # print("in while")
                         for variable_name in self.variable_name_to_object:
                             all_nodes_have_same_value = True
                             crdt = self.variable_name_to_object[variable_name]
@@ -388,7 +388,7 @@ class NetworkManager:
                     # TODO: check if the max_nonce values are achieved.
                     everything_is_ready = True
                     if len(self.peers_variables_max_nonces) != len(self.peers) and self.current_status == "sync":
-                        print(f"mismatch: {self.peers_variables_max_nonces}-{self.peers} --> {len(self.peers_variables_max_nonces)} {len(self.peers)}")
+                        # print(f"mismatch: {self.peers_variables_max_nonces}-{self.peers} --> {len(self.peers_variables_max_nonces)} {len(self.peers)}")
                         everything_is_ready = False
                         variable_max_nonce_dict: Dict[str, int] = {}
                         for variable_name in self.variable_name_to_object:
@@ -486,55 +486,66 @@ class NetworkManager:
 
     def handle_user_input(self, operation_value: Union[str, int], variable_name: str):
         variable_name_to_object = self.variable_name_to_object
-        if variable_name not in variable_name_to_object:
+
+
+
+        if operation_value == "create":
             variable_name_to_object[variable_name] = CRDT(variable_name)
+            return print(f"Created {variable_name} variable")
 
-        crdt = variable_name_to_object[variable_name]
+        try:
+            crdt = variable_name_to_object[variable_name]
+            if operation_value == "get":
+                print(f"value for {variable_name}: {crdt.get_value()}\n")
+            elif operation_value == "before":
+                print(f"previous value of {variable_name}: {crdt.get_before_sync_value()}\n")
+            elif operation_value == "history":
+                print(f"{variable_name} - self history: : {crdt.get_self_history()}")
+                print(f"{variable_name} - history: : {crdt.get_sync_history()}\n")
+            elif operation_value == "s":
+                # self._start_full_sync()
+                self.schedule_full_sync()
+            elif operation_value == "peers":
+                print(f"peers: {self.peers}")
+            elif operation_value == "variables":
+                s = ""
+                for i in self.variable_name_to_object:
+                    s += f"'{i}' "
+                print(f"all variables: {s}")
+            elif operation_value == "status":
+                print("current_status:", self.current_status)
 
-        if operation_value == "get":
-            print(f"value for {variable_name}: {crdt.get_value()}\n")
-        elif operation_value == "before":
-            print(f"previous value of {variable_name}: {crdt.get_before_sync_value()}\n")
-        elif operation_value == "history":
-            print(f"{variable_name} - self history: : {crdt.get_self_history()}")
-            print(f"{variable_name} - history: : {crdt.get_sync_history()}\n")
-        elif operation_value == "s":
-            # self._start_full_sync()
-            self.schedule_full_sync()
-        elif operation_value == "peers":
-            print(f"peers: {self.peers}")
-        elif operation_value == "status":
-            print("current_status:", self.current_status)
-
-            # TODO: start broadcasting sync packages for each crdt data OR start asking for missing nonce values
+                # TODO: start broadcasting sync packages for each crdt data OR start asking for missing nonce values
 
 
 
-        elif operation_value == "missing":
-            missing_nonce_list = crdt.get_missing_nonces()
-            print(f"missing nonce list {missing_nonce_list}")
+            elif operation_value == "missing":
+                missing_nonce_list = crdt.get_missing_nonces()
+                print(f"missing nonce list {missing_nonce_list}")
 
-        elif operation_value == "populate":
-            if self.current_status == "work":
-                for _ in range(0, 10):
-                    number = random.randint(-10000, 10000)
-                    crdt.operate(number)
-                    self.broadcast_threaded(Msg().init_variable_update(variable_name, number, crdt.current_nonce - 1))
+            elif operation_value == "populate":
+                if self.current_status == "work":
+                    for _ in range(0, 10):
+                        number = random.randint(-10000, 10000)
+                        crdt.operate(number)
+                        self.broadcast_threaded(Msg().init_variable_update(variable_name, number, crdt.current_nonce - 1))
+                else:
+                    print("wait full-sync to finish")
+                    #TODO: Maybe add message queue instead of blocking
             else:
-                print("wait full-sync to finish")
-                #TODO: Maybe add message queue instead of blocking
-        else:
-            if self.current_status == "work":
-                try:
-                    operation_value = int(operation_value)  # TODO: error handling
-                    crdt.operate(operation_value)
-                    self.broadcast_threaded(
-                        Msg().init_variable_update(variable_name, operation_value, crdt.current_nonce - 1))
-                except Exception as e:
-                    print(f"Encountered error: {e}")
-            else:
-                print("wait full-sync to finish")
-                #TODO: Maybe add message queue instead of blocking
+                if self.current_status == "work":
+                    try:
+                        operation_value = int(operation_value)  # TODO: error handling
+                        crdt.operate(operation_value)
+                        self.broadcast_threaded(
+                            Msg().init_variable_update(variable_name, operation_value, crdt.current_nonce - 1))
+                    except Exception as e:
+                        print(f"Encountered error: {e}")
+                else:
+                    print("wait full-sync to finish")
+                    #TODO: Maybe add message queue instead of blocking
+        except Exception as e:
+            print(f"invalid variable name: {variable_name}")
 
 
     def _check_status(self) -> None:
