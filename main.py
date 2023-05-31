@@ -24,7 +24,7 @@ if __name__ == "__main__":
     network_manager.listen_udp_threaded()
     network_manager.schedule_sync_broadcast()
     #network_manager.broadcast_threaded(Msg().init_hello(network_manager.ip, network_manager.current_status))
-    Thread(target=network_manager.periodic_hello_broadcast, args=(5,)).start()
+    Thread(target=network_manager.periodic_hello_broadcast, args=(0.1,)).start()
     Thread(target=network_manager.check_everything_is_ready).start()
 
     # TODO: add a sync checker, which will start and/or listen for end of sync process between nodes
