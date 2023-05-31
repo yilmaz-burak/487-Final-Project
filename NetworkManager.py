@@ -390,6 +390,14 @@ class NetworkManager:
                     if len(self.peers_variables_max_nonces) != len(self.peers) and self.current_status == "sync":
                         print(f"mismatch: {self.peers_variables_max_nonces}-{self.peers} --> {len(self.peers_variables_max_nonces)} {len(self.peers)}")
                         everything_is_ready = False
+                        variable_max_nonce_dict: Dict[str, int] = {}
+                        for variable_name in self.variable_name_to_object:
+                            crdt = self.variable_name_to_object[variable_name]
+                            variable_max_nonce_dict[variable_name] = crdt.current_nonce
+
+                        start_sync_msg = Msg().init_start_sync(variable_max_nonce_dict)
+                        for node_ip in self.peers:
+                            self.send_threaded(start_sync_msg, node_ip)
 
                     for node_id in self.peers_variables_max_nonces:
                         variable_nonce_dict = self.peers_variables_max_nonces[node_id]
