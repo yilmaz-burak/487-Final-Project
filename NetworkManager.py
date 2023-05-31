@@ -14,7 +14,7 @@ from constants import (
 )
 # import json
 import socket
-from threading import Thread, Timer
+from threading import Thread, Timer, Lock
 import select
 import random
 import time
@@ -35,6 +35,12 @@ class NetworkManager:
         
         # Continiously check if all the nodes are in ready state, if so make changes accordingly
         # Thread(target=self._check_status).start()
+
+    def set_current_status(self, status):
+        lock = Lock()
+        lock.acquire()
+        self.current_status = status
+        lock.release()
 
     def get_peers(self):
         return self.peers
@@ -232,7 +238,7 @@ class NetworkManager:
 
         if msg_type == MSG_START_SYNC:
             try:
-                self.current_status = "sync"  # start the syncing process
+                self.set_current_status("sync")  # start the syncing process
                 time.sleep(0.1)
 
                 # this code is duplicate of the one on _handle_user_input
@@ -341,7 +347,7 @@ class NetworkManager:
                 print("waited for peers ready")
 
                 print("sending stop sync message")
-                variable_value_dict: dict[str, int] = {}
+                variable_value_dict: Dict[str, int] = {}
                 for variable_name in self.variable_name_to_object:
                     variable_value_dict[variable_name] = self.variable_name_to_object[variable_name].value
                     
@@ -366,7 +372,7 @@ class NetworkManager:
                             crdt.reset()
                             
                     if all_variables_synced:
-                        self.current_status = "work"
+                        self.set_current_status("work")
                         for node_id in self.peers:
                             self.send_threaded(Msg().init_status(self.current_status), node_id)
                         break
@@ -376,7 +382,7 @@ class NetworkManager:
             # TODO: check if the max_nonce values are achieved.
             everything_is_ready = True
             if len(self.peers_variables_max_nonces) != len(self.peers) and self.current_status == "sync":
-                print(f"mismatch: {self.peers_variables_max_nonces}-{self.peers} --> {len(self.peers_variables_max_nonces)} {len(self.peers)}")
+                #print(f"mismatch: {self.peers_variables_max_nonces}-{self.peers} --> {len(self.peers_variables_max_nonces)} {len(self.peers)}")
                 everything_is_ready = False
 
             for node_id in self.peers_variables_max_nonces:
@@ -398,7 +404,7 @@ class NetworkManager:
                         print("missing nonce list:", missing_nonce_list)
 
             if everything_is_ready:
-                self.current_status = "ready"
+                self.set_current_status("ready")
                 for node_ip in self.peers:  # TODO: peers is not populated correctly.
                     self.send_threaded(Msg().init_status(self.current_status), node_ip)
                     self.peers_variables_max_nonces = {}
@@ -429,7 +435,7 @@ class NetworkManager:
 
         # TODO: Set current status to sync - Maybe do this for individual variables? Would be cooler. Like a distributed mutex lock...
         # TODO: need to add relevant checks for this on function calls
-        self.current_status = "sync"
+        self.set_current_status("sync")
         time.sleep(0.1)  # sleep, since we don't use locks. nonce value could be changed by another thread
 
         # TODO: send sync initiating message to all the nodes via tcp, telling what variables and their max_nonce values
@@ -516,7 +522,7 @@ class NetworkManager:
             if self.current_status == "ready":
                 for i in self.peers:
                     if self.peers[i] == "ready":
-                        variable_value_dict: dict[str, int] = {}
+                        variable_value_dict: Dict[str, int] = {}
                         for variable_name in self.variable_name_to_object:
                             variable_value_dict[variable_name] = self.variable_name_to_object[variable_name].value
                             
@@ -632,7 +638,7 @@ class NetworkManager:
             
         # TODO: send stop sync message
         print("sending stop sync message")
-        variable_value_dict: dict[str, int] = {}
+        variable_value_dict: Dict[str, int] = {}
         for variable_name in self.variable_name_to_object:
             variable_value_dict[variable_name] = self.variable_name_to_object[variable_name].value
             

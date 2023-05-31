@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 from constants import (
     MSG_HELLO,
     MSG_HELLO_RECEIVED,
@@ -12,8 +14,8 @@ from constants import (
 )
 from Msg import Msg
 
-HistoryObject = dict[int, int]
-History = dict[str, HistoryObject]
+HistoryObject = Dict[int, int]
+History = Dict[str, HistoryObject]
 
 
 class CRDT:
@@ -100,15 +102,15 @@ class CRDT:
             print(f"{self.name} ==> current: {self.value} - expected: {expected_value}")
             self.value = expected_value
 
-    def _get_nonce_values(self, nonce_list: list[int]) -> dict[int, int]:
-        nonce_values: dict[int, int] = {}
+    def _get_nonce_values(self, nonce_list: List[int]) -> Dict[int, int]:
+        nonce_values: Dict[int, int] = {}
         for nonce_index in nonce_list:
             nonce_values[nonce_index] = self.self_history[nonce_index]
 
         return nonce_values
 
-    def get_missing_nonces(self) -> dict[str, list[int]]:
-        missing_list: dict[str, list[int]] = {}
+    def get_missing_nonces(self) -> Dict[str, List[int]]:
+        missing_list: Dict[str, List[int]] = {}
 
         for node_id in self.sync_history:
             node_history = self.sync_history[node_id]

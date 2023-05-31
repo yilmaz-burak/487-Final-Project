@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 from constants import (
     MSG_HELLO,
     MSG_HELLO_RECEIVED,
@@ -55,7 +57,7 @@ class Msg:
         self.msg_dict["variable_max_nonce_dict"] = variable_max_nonce_dict
         return self
 
-    def init_stop_sync(self, variable_value_dict: dict[str, int]):
+    def init_stop_sync(self, variable_value_dict: Dict[str, int]):
         self.clear()
         self.msg_dict["msg_type"] = MSG_STOP_SYNC
         self.msg_dict["variable_value_dict"] = variable_value_dict
@@ -72,21 +74,21 @@ class Msg:
         self.msg_dict["status"] = status
         return self
 
-    def init_nonce_request(self, variable_name: str, nonce_list: list[int]):
+    def init_nonce_request(self, variable_name: str, nonce_list: List[int]):
         self.clear()
         self.msg_dict["msg_type"] = MSG_NONCE_REQUEST
         self.msg_dict["variable_name"] = variable_name
         self.msg_dict["nonce_number_list"] = nonce_list
         return self
 
-    def init_nonce_send(self, variable_name: str, nonce_dict: dict[int, int]):
+    def init_nonce_send(self, variable_name: str, nonce_dict: Dict[int, int]):
         self.clear()
         self.msg_dict["msg_type"] = MSG_NONCE_SEND
         self.msg_dict["variable_name"] = variable_name
         self.msg_dict["nonce_dict"] = nonce_dict
         return self
 
-    def init_sync_data(self, variable_name: str, previous_value: int, history: dict[int, int]):
+    def init_sync_data(self, variable_name: str, previous_value: int, history: Dict[int, int]):
         self.clear()
         self.msg_dict["msg_type"] = MSG_SYNC_DATA
         self.msg_dict["variable_name"] = variable_name
@@ -105,7 +107,7 @@ class Msg:
     def to_jsonstr(self) -> str:
         return json.dumps(self.msg_dict)
 
-    def convert_dict_to_dict(self, original_dict) -> dict[int, int]:
+    def convert_dict_to_dict(self, original_dict) -> Dict[int, int]:
         new_dict = {int(key): value for key, value in original_dict.items()}
         return new_dict
 
