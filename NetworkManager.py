@@ -397,12 +397,14 @@ class NetworkManager:
                                 if variable_name not in self.peers_sync_values[node_id]:
                                     all_nodes_have_same_value = False
                                     all_variables_synced = False
-                                    print(12)
+                                    print(12, variable_name, node_id)
 
                                 elif self.peers_sync_values[node_id][variable_name] != crdt.value:
                                     all_nodes_have_same_value = False
                                     all_variables_synced = False
-                                    print(13)
+                                    print(13, node_id, variable_name)
+
+                                # TODO: ask for the sync value from node_id
                                     
                             if all_nodes_have_same_value:
                                 print(14)
