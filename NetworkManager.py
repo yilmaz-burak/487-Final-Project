@@ -267,7 +267,6 @@ class NetworkManager:
                             missing_nonce_list.append(nonce_number)
 
                     self.peers_variables_max_nonces[ip] = variable_max_nonce_dict
-                    print(f"\nself.peers_variables_max_nonces: {self.peers_variables_max_nonces}\n")
 
                     msg = Msg().init_nonce_request(variable_name, missing_nonce_list)
                     self.send_threaded(msg, ip)
@@ -316,7 +315,6 @@ class NetworkManager:
                 print(end="")
 
         if msg_type == MSG_NONCE_SEND:
-            print("GOT NONCE SEND: ", msg.to_string())
             try:
                 variable_name = msg.__getitem__("variable_name")
                 nonce_dict = msg.convert_dict_to_dict(msg.__getitem__("nonce_dict"))
