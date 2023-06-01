@@ -442,6 +442,14 @@ class NetworkManager:
                             print(2)
 
                             for nonce_number in range(max_nonce):
+                                if variable_name not in self.variable_name_to_object:
+                                    self.variable_name_to_object[variable_name] = CRDT(variable_name)
+
+                                if node_id not in self.variable_name_to_object[variable_name].sync_history:
+                                    print(f"node_id: {node_id} does not exist in sync history: {self.variable_name_to_object[variable_name].sync_history} ")
+                                    msg = Msg().init_nonce_request(variable_name, [0])
+                                    self.send_threaded(msg, node_id)
+
                                 if nonce_number not in self.variable_name_to_object[variable_name].sync_history[node_id]:
                                     missing_nonce_list.append(nonce_number)
                                     everything_is_ready = False
