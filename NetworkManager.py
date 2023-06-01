@@ -10,7 +10,8 @@ from constants import (
     MSG_NONCE_REQUEST,
     MSG_NONCE_SEND,
     MSG_SYNC_DATA,
-    MSG_SYNC_MISMATCH,
+    MSG_SYNC_MISMATCH_REQUEST,
+    MSG_SYNC_MISMATCH_DATA,
     LISTEN_BUFFER_SIZE
 )
 # import json
@@ -267,7 +268,16 @@ class NetworkManager:
             except Exception as e:
                 print("msg_start_sync error:", e)
 
-        if msg_type == MSG_SYNC_MISMATCH:
+        if msg_type == MSG_SYNC_MISMATCH_REQUEST:
+            variable_max_nonce_dict: Dict[str, int] = {}
+            for variable_name in self.variable_name_to_object:
+                crdt = self.variable_name_to_object[variable_name]
+                variable_max_nonce_dict[variable_name] = crdt.current_nonce
+
+            msg = Msg().init_sync_mismatch_data(variable_max_nonce_dict)
+            self.send_threaded(msg, ip)
+
+        if msg_type == MSG_SYNC_MISMATCH_DATA:                
             variable_max_nonce_dict = msg.__getitem__("variable_max_nonce_dict")
             for variable_name in variable_max_nonce_dict:
                 if variable_name not in self.variable_name_to_object:
@@ -417,8 +427,8 @@ class NetworkManager:
                             crdt = self.variable_name_to_object[variable_name]
                             variable_max_nonce_dict[variable_name] = crdt.current_nonce
 
-                        sync_mismatch_msg = Msg().init_sync_mismatch(variable_max_nonce_dict)
-                        for node_ip in self.peers:
+                        sync_mismatch_msg = Msg().init_sync_mismatch_request()
+                        for node_ip in self.peers: # TODO: only send to missing nodes
                             self.send_threaded(sync_mismatch_msg, node_ip)
 
                     for node_id in self.peers_variables_max_nonces:

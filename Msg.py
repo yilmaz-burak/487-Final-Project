@@ -9,6 +9,8 @@ from constants import (
     MSG_NONCE_REQUEST,
     MSG_NONCE_SEND,
     MSG_SYNC_DATA,
+    MSG_SYNC_MISMATCH_DATA,
+    MSG_SYNC_MISMATCH_REQUEST
 )
 
 import json
@@ -94,11 +96,16 @@ class Msg:
         self.msg_dict["previous_value"] = previous_value
         return self
 
-    def init_sync_mismatch(self, variable_max_nonce_dict):
+    def init_sync_mismatch_data(self, variable_max_nonce_dict):
         self.clear()
-        self.msg_dict["msg_type"] = "sync_mismatch"
+        self.msg_dict["msg_type"] = MSG_SYNC_MISMATCH_DATA
         self.msg_dict["variable_max_nonce_dict"] = variable_max_nonce_dict
-        return self    
+        return self
+    
+    def init_sync_mismatch_request(self):
+        self.clear()
+        self.msg_dict["msg_type"] = MSG_SYNC_MISMATCH_REQUEST
+        return self   
 
     def from_jsonstr(self, jsonstr: str):
         self.clear()
