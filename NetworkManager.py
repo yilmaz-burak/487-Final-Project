@@ -443,7 +443,7 @@ class NetworkManager:
             elif operation_value == "history":
                 print(f"{variable_name} - self history: : {crdt.get_self_history()}")
                 print(f"{variable_name} - history: : {crdt.get_sync_history()}\n")
-            elif operation_value == "s":
+            elif operation_value == "sync":
                 self.schedule_full_sync()
             elif operation_value == "peers":
                 print(f"peers: {self.peers}")
