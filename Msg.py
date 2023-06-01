@@ -94,6 +94,12 @@ class Msg:
         self.msg_dict["previous_value"] = previous_value
         return self
 
+    def init_sync_mismatch(self, variable_max_nonce_dict):
+        self.clear()
+        self.msg_dict["msg_type"] = "sync_mismatch"
+        self.msg_dict["variable_max_nonce_dict"] = variable_max_nonce_dict
+        return self    
+
     def from_jsonstr(self, jsonstr: str):
         self.clear()
         self.msg_dict = json.loads(jsonstr)

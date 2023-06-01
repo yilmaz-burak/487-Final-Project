@@ -10,6 +10,7 @@ from constants import (
     MSG_NONCE_REQUEST,
     MSG_NONCE_SEND,
     MSG_SYNC_DATA,
+    MSG_SYNC_MISMATCH,
     LISTEN_BUFFER_SIZE
 )
 # import json
@@ -266,6 +267,24 @@ class NetworkManager:
             except Exception as e:
                 print("msg_start_sync error:", e)
 
+        if msg_type == MSG_SYNC_MISMATCH:
+            variable_max_nonce_dict = msg.__getitem__("variable_max_nonce_dict")
+            for variable_name in variable_max_nonce_dict:
+                if variable_name not in self.variable_name_to_object:
+                    self.variable_name_to_object[variable_name] = CRDT(variable_name)
+
+                max_nonce = variable_max_nonce_dict[variable_name]
+                missing_nonce_list: List[int] = []
+                for nonce_number in range(max_nonce):
+                    if nonce_number not in self.variable_name_to_object[variable_name].sync_history:
+                        missing_nonce_list.append(nonce_number)
+
+                self.peers_variables_max_nonces[ip] = variable_max_nonce_dict
+                print(f"\nself.peers_variables_max_nonces: {self.peers_variables_max_nonces}\n")
+
+                msg = Msg().init_nonce_request(variable_name, missing_nonce_list)
+                self.send_threaded(msg, ip)
+
         if msg_type == MSG_NONCE_REQUEST:
             try:
                 variable_name = msg.__getitem__("variable_name")
@@ -328,26 +347,25 @@ class NetworkManager:
         try:
             while True:
                 for node_id in self.peers:
-                    # print("sending:", self.current_status)
+                    print("sending:", self.current_status)
                     self.send_threaded(Msg().init_status(self.current_status), node_id)
 
-                time.sleep(0.1)
+                time.sleep(3)
                 if self.current_status == "work":
                     # print("in work mode")
                     continue
 
                 elif self.current_status == "ready":
-                    # print("wait for peers ready")
                     while True:
+                        print("wait for peers ready")
                         all_in_ready_mode = True
                         for i in self.peers:
                             if self.peers[i] == "sync":
                                 all_in_ready_mode = False
                         if all_in_ready_mode:
                             break
-                    # print("waited for peers ready")
 
-                    # print("sending stop sync message")
+                    print("sending stop sync message")
                     variable_value_dict: dict[str, int] = {}
                     for variable_name in self.variable_name_to_object:
                         variable_value_dict[variable_name] = self.variable_name_to_object[variable_name].value
@@ -356,30 +374,34 @@ class NetworkManager:
                     for node_id in self.peers:
                         self.send_threaded(msg, node_id)
 
-                    # print("sent stop sync message:", msg.to_string())
-
                     # print("here.....")
                     while True:
+                        time.sleep(0.1)
                         all_variables_synced = True
                         # print("in while")
                         for variable_name in self.variable_name_to_object:
                             all_nodes_have_same_value = True
                             crdt = self.variable_name_to_object[variable_name]
                             for node_id in self.peers_sync_values:
+                                print(11)
                                 if variable_name not in self.peers_sync_values[node_id]:
                                     all_nodes_have_same_value = False
                                     all_variables_synced = False
+                                    print(12)
 
                                 elif self.peers_sync_values[node_id][variable_name] != crdt.value:
                                     all_nodes_have_same_value = False
                                     all_variables_synced = False
-
+                                    print(13)
+                                    
                             if all_nodes_have_same_value:
+                                print(14)
                                 crdt.reset()
                                 
                         if all_variables_synced:
                             self.current_status = "work"
                             for node_id in self.peers:
+                                print(15)
                                 self.send_threaded(Msg().init_status(self.current_status), node_id)
                             break
                 
@@ -395,9 +417,9 @@ class NetworkManager:
                             crdt = self.variable_name_to_object[variable_name]
                             variable_max_nonce_dict[variable_name] = crdt.current_nonce
 
-                        start_sync_msg = Msg().init_start_sync(variable_max_nonce_dict)
+                        sync_mismatch_msg = Msg().init_sync_mismatch(variable_max_nonce_dict)
                         for node_ip in self.peers:
-                            self.send_threaded(start_sync_msg, node_ip)
+                            self.send_threaded(sync_mismatch_msg, node_ip)
 
                     for node_id in self.peers_variables_max_nonces:
                         variable_nonce_dict = self.peers_variables_max_nonces[node_id]

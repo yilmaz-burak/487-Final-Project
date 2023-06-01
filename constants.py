@@ -10,6 +10,7 @@ MSG_STATUS = "status"
 MSG_NONCE_REQUEST = "nonce_request"
 MSG_NONCE_SEND = "nonce_send"
 MSG_SYNC_DATA = "sync_data"
+MSG_SYNC_MISMATCH = "sync_mismatch"
 
 STATUS_WORK = "work"
 STATUS_READY = "ready"
