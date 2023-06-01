@@ -344,8 +344,8 @@ class NetworkManager:
 # TODO: better naming for function
 
     def check_everything_is_ready(self) -> None:
-        try:
-            while True:
+        while True:
+            try:
                 for node_id in self.peers:
                     print("sending:", self.current_status)
                     self.send_threaded(Msg().init_status(self.current_status), node_id)
@@ -448,8 +448,8 @@ class NetworkManager:
                             self.send_threaded(Msg().init_status(self.current_status), node_ip)
                             self.peers_variables_max_nonces = {}
                             print(f"\nself.peers_variables_max_nonces reset: {self.peers_variables_max_nonces}\n")
-        except Exception as e:
-            print("check_everything exception:", e)
+            except Exception as e:
+                print("check_everything exception:", e)
 
 
     def _crdt_handler(self, msg: Msg, ip: str):
