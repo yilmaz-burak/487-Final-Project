@@ -26,21 +26,4 @@ services:
     command: python -u main.py
     tty: true
     stdin_open: true
-
-  # app4:
-  #   image: python:3.9
-  #   volumes:
-  #     - .:/app
-  #   working_dir: /app
-  #   command: python -u main.py
-  #   tty: true
-  #   stdin_open: true
-
-  # app5:
-  #   image: python:3.9
-  #   volumes:
-  #     - .:/app
-  #   working_dir: /app
-  #   command: python -u main.py
-  #   tty: true
-  #   stdin_open: true
+    

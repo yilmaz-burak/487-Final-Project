@@ -20,7 +20,6 @@ class Msg:
     def __init__(self):
         self.msg_dict = {}
 
-    # Q: What if the key is not valid?
     def __getitem__(self, key):
         return self.msg_dict[key]
 
@@ -43,11 +42,11 @@ class Msg:
         self.msg_dict["status"] = status
         return self
 
-    def init_variable_update(self, variable_name: str, operation: int, nonce: int):  # CRDT related
+    def init_variable_update(self, variable_name: str, operation: int, nonce: int):
         self.clear()
         self.msg_dict["msg_type"] = MSG_VARIABLE_UPDATE
         self.msg_dict["variable_name"] = variable_name
-        self.msg_dict["operation"] = operation  # Q: do we need to cast to string?
+        self.msg_dict["operation"] = operation
         self.msg_dict["nonce"] = nonce
         return self
 

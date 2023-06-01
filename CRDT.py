@@ -24,9 +24,7 @@ class CRDT:
         self.current_nonce = 0
         self.before_sync_value = 0
         self.name = name
-        # TODO: shall the variable_name be kept here?
 
-    # Q: This will only be used after sync is finished... Right?
     def reset(self) -> None:
         self.before_sync_value = self.value
         self.current_nonce = 0
@@ -64,7 +62,6 @@ class CRDT:
 
     def handle_msg(self, msg: Msg, ip: str) -> None:
         if ip not in self.sync_history:
-            # TODO: maybe add a sync mechanism, especially since we don't know for how long that ip was modifying the variable
             self.sync_history[ip] = {}
 
         if msg.__getitem__("msg_type") == MSG_VARIABLE_UPDATE:
@@ -124,4 +121,3 @@ class CRDT:
 
         return missing_list
 
-    # TODO: maybe add a checker that all the history sum up to current value. Maybe, we could add before_sync_value to see the effect after syncing
