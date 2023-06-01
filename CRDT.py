@@ -120,4 +120,3 @@ class CRDT:
                         missing_list[node_id].append(i)
 
         return missing_list
-

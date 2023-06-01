@@ -10,7 +10,7 @@ from constants import (
     MSG_NONCE_SEND,
     MSG_SYNC_DATA,
     MSG_SYNC_MISMATCH_DATA,
-    MSG_SYNC_MISMATCH_REQUEST
+    MSG_SYNC_MISMATCH_REQUEST,
 )
 
 import json
@@ -100,11 +100,11 @@ class Msg:
         self.msg_dict["msg_type"] = MSG_SYNC_MISMATCH_DATA
         self.msg_dict["variable_max_nonce_dict"] = variable_max_nonce_dict
         return self
-    
+
     def init_sync_mismatch_request(self):
         self.clear()
         self.msg_dict["msg_type"] = MSG_SYNC_MISMATCH_REQUEST
-        return self   
+        return self
 
     def from_jsonstr(self, jsonstr: str):
         self.clear()
@@ -120,4 +120,3 @@ class Msg:
     def convert_dict_to_dict(self, original_dict) -> dict[int, int]:
         new_dict = {int(key): value for key, value in original_dict.items()}
         return new_dict
-

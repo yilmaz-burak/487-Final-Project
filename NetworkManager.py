@@ -170,7 +170,6 @@ class NetworkManager:
                 print(end="")
 
     def _network_handler(self, msg: Msg, ip: str):
-
         msg_type = msg.__getitem__("msg_type")
         if msg_type == MSG_HELLO:
             try:
@@ -309,7 +308,6 @@ class NetworkManager:
                 self.send_threaded(Msg().init_status(self.current_status), ip)
             except Exception as e:
                 print(end="")
-
 
     def check_everything_is_ready(self) -> None:
         while True:

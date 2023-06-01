@@ -10,9 +10,15 @@ def handle_user_input(network_manager: NetworkManager):
         user_input = input()
         try:
             operation_value, variable_name = user_input.split()
-            thread = Thread(target=network_manager.handle_user_input, args=(operation_value, variable_name,))
+            thread = Thread(
+                target=network_manager.handle_user_input,
+                args=(
+                    operation_value,
+                    variable_name,
+                ),
+            )
             thread.start()
-            
+
         except Exception as e:
             print(f"Exception occured: {e}")
 
