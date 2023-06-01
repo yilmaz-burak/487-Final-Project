@@ -65,7 +65,7 @@ class NetworkManager:
                 msg = Msg().init_sync_data(variable_name, crdt.before_sync_value, crdt.self_history)
                 thread = Thread(target=self._broadcast, args=(msg,))
                 thread.start()
-            time.sleep(3)
+            time.sleep(100)
 
     def schedule_sync_broadcast(self) -> None:
         Thread(target=self._sync_broadcast).start()
@@ -213,7 +213,7 @@ class NetworkManager:
                 variable_value_dict = msg.__getitem__("variable_value_dict")
                 self.peers_sync_values[ip] = variable_value_dict
             except Exception as e:
-                print("msg_stop_sync error:", e)
+                print(end="")
 
         if msg_type == MSG_START_SYNC:
             try:
@@ -269,7 +269,6 @@ class NetworkManager:
                         missing_nonce_list.append(nonce_number)
 
                 self.peers_variables_max_nonces[ip] = variable_max_nonce_dict
-                print(f"\nself.peers_variables_max_nonces: {self.peers_variables_max_nonces}\n")
 
                 msg = Msg().init_nonce_request(variable_name, missing_nonce_list)
                 self.send_threaded(msg, ip)
